@@ -221,3 +221,35 @@ Troubleshooting
 * Test DNS: Ping a familiar domain name from an appVM. It should print the IP address for the domain.
 * For scripting: Ping external IP addresses from inside the VPN VM using `sudo sg qvpn -c 'ping ...'`, then from an appVM using just `ping ...`. Once the firewall rules are in place, you will have to use `sudo sg` to run any IP network commands in the VPN VM.
 * Use `iptables -L -v` and `iptables -L -v -t nat` to check firewall rules. The latter shows the critical PR-QBS chain that enables DNS forwarding.
+
+
+Bitmask VPN
+---------------
+Bitmask is an open source application to provide easy and secure encrypted communication. (see also: https://bitmask.net)
+
+
+### AppVM
+Installing bitmask inside an app vm is the easiest way, but you have to install the client in every appvm, that should use the vpn. 
+In dom0:
+
+    $ qvm-clone debian-8 my-new-vpn-app-vm
+
+the next steps you can simply follow the install instructions on their [website](https://bitmask.net/en/install/linux#debian-packages)
+
+*For firefox user: Remember to disable WebRTC internal ip leak by setting "media.peerconnection.enabled" to "false"*
+
+### ProxyVM
+If you want to use the bitmask vpn inside a proxyvm, you need some additional iptable rules, to prevent dns-leak.
+Inside the proxyvm paste these lines at the end of the "/rw/config/qubes-firewall-user-script": 
+        
+	$ iptables -t nat -I PR-QBS -p udp --dport 53 -j DNAT --to-destination 10.42.0.1:53
+        
+	$ iptables -t nat -I PR-QBS -p tcp --dport 53 -j DNAT --to-destination 10.42.0.1:53
+
+make it executable with `chmod +x /rw/config/qubes-firewall-user-script`
+
+test these rules on services like [https://ipleak.net/](https://ipleak.net/)
+
+*For firefox user: Remember to disable WebRTC internal ip leak by setting "media.peerconnection.enabled" to "false"*
+
+
